@@ -8,8 +8,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+// program to generate random strings
+
+// declare all characters
+
+
 const generateRandomString = function (){
-  
+  const characters ='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = ' ';
+  for ( let i = 0; i < 6; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
 }
 
 app.use(express.urlencoded({ extended: true }));//body-parser
