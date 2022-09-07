@@ -17,6 +17,16 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
+      
     </div>
   </nav>
+  <form method="POST" action="/urls/login">
+    <div class="mx-auto" style="width: 200px;">
+      <label for="userName">Username</label>
+      <input
+        name="userName"
+      />
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+  </form>
 </header>

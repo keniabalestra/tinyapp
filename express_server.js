@@ -1,8 +1,11 @@
 const express = require("express");
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
-app.set("view engine", "ejs");
 
+app.set("view engine", "ejs");
+app.use(cookieParser()); 
+app.use(express.urlencoded({ extended: true }));//body-parser
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -23,7 +26,13 @@ const generateRandomString = function() {
   return result;
 };
 
-app.use(express.urlencoded({ extended: true }));//body-parser
+//Login
+app.post('/login', function (req, res) {
+  let cookie = req.body.username
+  res.cookie("username", cookie)
+
+  res.redirect("/urls")
+})
 
 
 
@@ -65,9 +74,8 @@ app.get("/u/:shortURL", (req, res) => {
 //update
 app.post("/urls/:shortURL", (req, res) => {
   const longURL = req.body.longURL;
-  console.log(longURL)
+  console.log(longURL);
   urlDatabase[req.params.shortURL] = req.body.longURL;
-
   res.redirect("/urls");
 });
 
