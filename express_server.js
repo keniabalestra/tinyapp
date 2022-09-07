@@ -25,6 +25,8 @@ const generateRandomString = function() {
 
 app.use(express.urlencoded({ extended: true }));//body-parser
 
+
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
@@ -37,6 +39,7 @@ app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render('urls_index', templateVars);
 });
+
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
@@ -46,6 +49,7 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render('urls_show', templateVars);
 });
 
+//Add a new URL
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
@@ -58,10 +62,15 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+//update
+app.post("/urls/:shortURL/edit", (req, res) => {
+  const templateVars = { shortURL: req.params.shortURL };
+  res.redirect("/urls");
+});
+
+//Delete URL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  
   delete urlDatabase[req.params.shortURL];
-  
   res.redirect("/urls");
 });
 
