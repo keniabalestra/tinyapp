@@ -28,8 +28,6 @@ const generateRandomString = function() {
 
 
 
-
-
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
@@ -41,7 +39,8 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {username: null}
+  res.render('urls_new', templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
@@ -88,10 +87,15 @@ app.post('/login', function(req, res) {
 
 //Logout
 app.post('/logout', function(req, res) {
-  
   res.clearCookie("username");
   res.redirect("/urls");
 });
+
+//Register
+app.get('/register', function(req,res) {
+const templateVars = {username: null}
+  res.render('urls_register', templateVars);
+})
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
