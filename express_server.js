@@ -6,9 +6,17 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));//body-parser
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+};
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  }
 };
 
 
@@ -34,17 +42,19 @@ app.get("/urls.json", (req, res) => {
 
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  const userId = req.cookies["user_id"] // userId = abc123
+  //const user = abc123:{ userId: abc123, email:abc@gmail.com, passwrod: hshdo}
+  const templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]] };
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = {username: null}
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render('urls_new', templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["user_id"]] };
   res.render('urls_show', templateVars);
 });
 
@@ -80,22 +90,31 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //Login
 app.post('/login', function(req, res) {
-  const username = req.body.username;
-  res.cookie("username", username);
+  const userId = req.cookies["user_id"]
+  res.cookie("user_id",userId);
   res.redirect("/urls");
 });
 
 //Logout
 app.post('/logout', function(req, res) {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
 //Register
-app.get('/register', function(req,res) {
-const templateVars = {username: null}
+app.get('/register', function(req, res) {
+  const templateVars = { user: users[req.cookies["user_id"]]};
   res.render('urls_register', templateVars);
-})
+});
+
+//Register - POST - handles the registration form data
+app.post('/register', function(req, res) {
+  const userId = generateRandomString();
+  users[userId] = { userId, email: req.body.email, password: req.body.password };
+  res.cookie("user_id",userId); //userId= abc123
+  res.redirect('/urls')
+  
+});
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
