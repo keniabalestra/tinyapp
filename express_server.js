@@ -95,6 +95,12 @@ app.post('/login', function(req, res) {
   res.redirect("/urls");
 });
 
+//New login
+app.get('/login', (req,res) => {
+  const templateVars = { user: users[req.cookies["user_id"]]};
+  res.render('urls_login', templateVars);
+})
+
 //Logout
 app.post('/logout', function(req, res) {
   res.clearCookie("user_id");
