@@ -111,11 +111,26 @@ app.get('/register', function(req, res) {
 app.post('/register', function(req, res) {
   const userId = generateRandomString();
   users[userId] = { userId, email: req.body.email, password: req.body.password };
+if(!email  || !password){
+  res.status(400).send("Invalid request,. Please add your information. ")
+}
+if (!checkEmail(email, usersDataBase)){
+  res.status(400).send("Invalid request,. Please add your information. ")
+}
   res.cookie("user_id",userId); //userId= abc123
   res.redirect('/urls')
-  
 });
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
 });
+
+//check to see if email exist
+const checkEmail = (email, usersDataBase) => {
+  for (let key in usersDataBase) {
+    if (email === usersDataBase[key].email) {
+      return email;
+    }
+  }
+  return {};
+};
