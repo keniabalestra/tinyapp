@@ -45,7 +45,14 @@ const generateRandomString = function() {
   return result;
 };
 
-
+app.get("/", (req, res) => {
+  const currentUser = users[req.session["user_id"]];
+  if (!currentUser) {
+    res.redirect('/login');
+    return;
+  }
+  res.redirect("/urls");
+});
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
@@ -78,7 +85,7 @@ app.get("/urls/:shortURL", (req, res) => {
   if (!currentUser) {
     return res.status(401).send("You need to login to access this feature.");
   }
-  if (urlDatabase[req.params.shortURL].userID !== currentUser) {
+  if (urlDatabase[req.params.shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page.");
   }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.session["user_id"]] };
@@ -184,7 +191,7 @@ app.post('/register', function(req, res) {
   const hashedPassword = bcrypt.hashSync(password, 10);
   users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword };
   const user = users[newUserId];
-  console.log(user);
+  
   if (!user.email || !user.password) {
     res.status(400).send("Invalid request. Please add your information. ");
   }
