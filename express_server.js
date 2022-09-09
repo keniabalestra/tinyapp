@@ -1,6 +1,7 @@
+const getUserByEmail = require('./helpers')
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const cookieSession = require('cookie-session')
+const cookieSession = require('cookie-session');
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -9,7 +10,8 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));//body-parser
 app.use(cookieSession({
   name: 'session',
-  keys: ['key1', 'key2'],}))
+  keys: ['key1', 'key2'],
+}));
 
 
 const urlDatabase = {
@@ -66,7 +68,7 @@ app.get("/urls/new", (req, res) => {
     res.redirect('/login');
     return;
   }
-  
+
   const templateVars = { user: users[req.session["user_id"]] };
   res.render('urls_new', templateVars);
 });
@@ -76,7 +78,7 @@ app.get("/urls/:shortURL", (req, res) => {
   if (!currentUser) {
     return res.status(401).send("You need to login to access this feature.");
   }
-  if (urlDatabase[req.params.shortURL].userID !== currentUser){
+  if (urlDatabase[req.params.shortURL].userID !== currentUser) {
     return res.status(403).send("You are not authorized to see this page.");
   }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.session["user_id"]] };
@@ -110,7 +112,7 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const longURL = req.body.longURL;
   const currentUser = users[req.session["user_id"]];
-  const shortURL =req.params.shortURL;
+  const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID !== currentUser) {
     return res.status(403).send("You are not authorized to see this page. Please Log In");
   }
@@ -121,8 +123,8 @@ app.post("/urls/:shortURL", (req, res) => {
 //Delete URL
 app.post("/urls/:shortURL/delete", (req, res) => {
   const currentUser = users[req.session["user_id"]];
-  
-  if(!currentUser){
+
+  if (!currentUser) {
     return res.status(403).send("You are not authorized to delete this URL.");
   }
   delete urlDatabase[req.params.shortURL];
@@ -132,8 +134,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //Login
 app.post('/login', function(req, res) {
-  const currentUser = users[req.session["user_id"]];
-  const user = findUserinDatabase(currentUser, urlDatabase);
+  const user = getUserByEmail(req.body.email, urlDatabase);
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
 
@@ -147,8 +148,8 @@ app.post('/login', function(req, res) {
     return res.status(403).send("Invalid request. Wrong password.");
   }
 
-  
-  req.session["user_id"]= user.id
+
+  req.session["user_id"] = user.id;
   res.redirect("/urls");
 });
 
@@ -181,9 +182,9 @@ app.post('/register', function(req, res) {
   const newUserId = generateRandomString();
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword};
+  users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword };
   const user = users[newUserId];
-  console.log(user)
+  console.log(user);
   if (!user.email || !user.password) {
     res.status(400).send("Invalid request. Please add your information. ");
   }
@@ -191,13 +192,13 @@ app.post('/register', function(req, res) {
     res.status(400).send("Invalid request. You're already registered.");
   }
 
-  req.session["user_id"] = newUserId
+  req.session["user_id"] = newUserId;
   res.redirect('/urls');
 });
 
 //Logout
 app.post('/logout', function(req, res) {
-  req.session = null; 
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -226,14 +227,7 @@ const checkEmailinDatabase = (email, password) => {
   }
 };
 
-const findUserinDatabase = (email) => {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return null;
-};
+
 
 const urlsForUser = function(id, urlDatabase) {
   let userURLs = {};
