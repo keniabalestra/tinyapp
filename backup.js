@@ -10,13 +10,13 @@ app.use(express.urlencoded({ extended: true }));//body-parser
 
 
 //user databaseish
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
-
-
 const urlDatabase = {
+  "b2xVn2": "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com"
+};
+
+
+const newUrlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
     userID: "aJ48lW",
@@ -24,8 +24,7 @@ const urlDatabase = {
   i3BoGr: {
     longURL: "https://www.google.ca",
     userID: "aJ48lW",
-  }
-
+  },
 };
 
 
@@ -46,7 +45,7 @@ const users = {
 //Generate random strings
 const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  let result = ' ';
   for (let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
@@ -61,15 +60,9 @@ app.get("/urls.json", (req, res) => {
 
 
 app.get("/urls", (req, res) => {
-  const currentUser = users[req.cookies["user_id"]];
-  if (!currentUser) {
-    return res.status(401).send("You need to login to access this feature. Click <a href='/login'>here</a> to login");
-  }
-  const urls = urlsForUser(currentUser.id, urlDatabase);
-  console.log(currentUser.id)
-  console.log(urls);
-  console.log(urlDatabase);
-  const templateVars = { urls: urls, user: users[req.cookies["user_id"]] };
+  const userId = req.cookies["user_id"];
+
+  const templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]] };
   res.render('urls_index', templateVars);
 });
 
@@ -77,6 +70,7 @@ app.get("/urls/new", (req, res) => {
   const currentUser = users[req.cookies["user_id"]];
   if (!currentUser) {
     res.redirect('/login');
+    
     return;
   }
   const templateVars = { user: users[req.cookies["user_id"]] };
@@ -98,15 +92,16 @@ app.post("/urls", (req, res) => {
     //return;
   }
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
+  urlDatabase[shortURL] = req.body.longURL;
   res.redirect(`/urls/${shortURL}`);
 });
 
 //redirects using shortURL
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  if (!longURL) {
-    return res.status(401).send("This URL doesn't exist.");
+  const longURL = urlDatabase[req.params.shortURL];
+  console.log(longURL)
+  if(!longURL) {
+    return res.status(401).send("This URL doesn't exist.")
   }
   res.redirect(longURL);
 });
@@ -114,11 +109,7 @@ app.get("/u/:shortURL", (req, res) => {
 //Updates the URL
 app.post("/urls/:shortURL", (req, res) => {
   const longURL = req.body.longURL;
-  const currentUser = users[req.cookies["user_id"]];
-  if (urlDatabase[req.params.shortURL].userID !== currentUser) {
-    return res.status(403).send("You are not authorized to see this page. Please Log In");
-  }
-  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  urlDatabase[req.params.shortURL] = req.body.longURL;
   res.redirect("/urls");
 });
 
@@ -126,14 +117,15 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
+
+
 });
 
 
 //Login
 app.post('/login', function(req, res) {
-  const currentUser = users[req.cookies["user_id"]]
-  const user = findUserinDatabase(currentUser, urlDatabase);
-  
+  const user = findUserinDatabase(req.body.email);
+  console.log(user);
   //Email not found
   if (user === null) {
     return res.status(403).send("Invalid request. Email not found.");
@@ -146,6 +138,8 @@ app.post('/login', function(req, res) {
 
   res.cookie("user_id", user.id);
   res.redirect("/urls");
+
+
 });
 
 //New login
@@ -211,10 +205,13 @@ const checkEmailinDatabase = (email, password) => {
   if (users.email !== email) {
     res.status(403).send("Invalid request. Email not found.");
   }
+
   // Password doesn't match
   if (users.password !== password) {
     res.status(403).send("Invalid request. Wrong password.");
   }
+
+
 };
 
 const findUserinDatabase = (email) => {
@@ -225,14 +222,3 @@ const findUserinDatabase = (email) => {
   }
   return null;
 };
-
-const urlsForUser = function(id, urlDatabase) {
-  let userURLs = {};
-  for (const shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userURLs[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return userURLs;
-};
-
