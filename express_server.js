@@ -1,4 +1,4 @@
-const getUserByEmail = require('./helpers')
+const {checkEmailinDatabase, generateRandomString, getUserByEmail, urlsForUser} = require('./helpers');
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require('cookie-session');
@@ -33,17 +33,6 @@ const users = {
   }
 };
 
-
-
-//Generates random strings
-const generateRandomString = function() {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
 
 app.get("/", (req, res) => {
   const currentUser = users[req.session["user_id"]];
@@ -88,8 +77,17 @@ app.get("/urls/:shortURL", (req, res) => {
   if (urlDatabase[req.params.shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page.");
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.session["user_id"]] };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session["user_id"]] };
   res.render('urls_show', templateVars);
+});
+//redirects using shortURL
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+
+  if (!longURL) {
+    return res.status(401).send("This URL doesn't exist.");
+  }
+  res.redirect(longURL);
 });
 
 //Adds a new URL
@@ -97,32 +95,24 @@ app.post("/urls", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   if (!currentUser) {
     return res.status(401).send("You need to login to access this feature.");;
-    // const message = {message: "You need to login to access this feature." }
-    // res.render('url_error', message);
-    //return;
   }
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.session["user_id"] };
   res.redirect(`/urls/${shortURL}`);
 });
 
-//redirects using shortURL
-app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  if (!longURL) {
-    return res.status(401).send("This URL doesn't exist.");
-  }
-  res.redirect(longURL);
-});
-
 //Updates the URL
 app.post("/urls/:shortURL", (req, res) => {
-  const longURL = req.body.longURL;
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID !== currentUser) {
     return res.status(403).send("You are not authorized to see this page. Please Log In");
   }
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+  if (!longURL) {
+    return res.status(401).send("This URL doesn't exist.");
+  }
+
   urlDatabase[shortURL].longURL = req.body.longURL;
   res.redirect("/urls");
 });
@@ -138,6 +128,27 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+//New login
+app.get('/login', (req, res) => {
+  const currentUser = users[req.session["user_id"]];
+  if (currentUser) {
+    res.redirect('/urls');
+    return;
+  }
+  const templateVars = { user: currentUser };
+  res.render('urls_login', templateVars);
+});
+
+//Register
+app.get('/register', function(req, res) {
+  const currentUser = users[req.session["user_id"]];
+  if (currentUser) {
+    res.redirect('/urls');
+    return;
+  }
+  const templateVars = { user: users[req.session["user_id"]] };
+  res.render('urls_register', templateVars);
+});
 
 //Login
 app.post('/login', function(req, res) {
@@ -154,34 +165,8 @@ app.post('/login', function(req, res) {
   if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("Invalid request. Wrong password.");
   }
-
-
   req.session["user_id"] = user.id;
   res.redirect("/urls");
-});
-
-//New login
-app.get('/login', (req, res) => {
-  const currentUser = users[req.session["user_id"]];
-  if (currentUser) {
-    res.redirect('/urls');
-    return;
-  }
-  const templateVars = { user: currentUser };
-  res.render('urls_login', templateVars);
-});
-
-
-
-//Register
-app.get('/register', function(req, res) {
-  const currentUser = users[req.session["user_id"]];
-  if (currentUser) {
-    res.redirect('/urls');
-    return;
-  }
-  const templateVars = { user: users[req.session["user_id"]] };
-  res.render('urls_register', templateVars);
 });
 
 //Register - POST - handles the registration form data
@@ -191,14 +176,13 @@ app.post('/register', function(req, res) {
   const hashedPassword = bcrypt.hashSync(password, 10);
   users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword };
   const user = users[newUserId];
-  
+
   if (!user.email || !user.password) {
     res.status(400).send("Invalid request. Please add your information. ");
   }
-  if (checkEmail(user.email)) {
+  if (checkEmailinDatabase(user.email, urlDatabase)) {
     res.status(400).send("Invalid request. You're already registered.");
   }
-
   req.session["user_id"] = newUserId;
   res.redirect('/urls');
 });
@@ -209,40 +193,8 @@ app.post('/logout', function(req, res) {
   res.redirect("/urls");
 });
 
+
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
 });
-
-//check to see if email exist
-const checkEmail = (email) => {
-  if (users.email === email) {
-    return true;
-  }
-  return false;
-};
-
-//find user email in database
-
-const checkEmailinDatabase = (email, password) => {
-  // Email doesn't exist
-  if (users.email !== email) {
-    res.status(403).send("Invalid request. Email not found.");
-  }
-  // Password doesn't match
-  if (users.password !== password) {
-    res.status(403).send("Invalid request. Wrong password.");
-  }
-};
-
-
-
-const urlsForUser = function(id, urlDatabase) {
-  let userURLs = {};
-  for (const shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userURLs[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return userURLs;
-};
-
