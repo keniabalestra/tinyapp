@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
@@ -144,6 +145,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post('/login', function(req, res) {
   const currentUser = users[req.cookies["user_id"]];
   const user = findUserinDatabase(currentUser, urlDatabase);
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
 
   //Email not found
   if (user === null) {
@@ -151,7 +154,7 @@ app.post('/login', function(req, res) {
   }
 
   // Password doesn't match
-  if (user.password !== req.body.password) {
+  if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("Invalid request. Wrong password.");
   }
 
@@ -170,11 +173,7 @@ app.get('/login', (req, res) => {
   res.render('urls_login', templateVars);
 });
 
-//Logout
-app.post('/logout', function(req, res) {
-  res.clearCookie("user_id");
-  res.redirect("/urls");
-});
+
 
 //Register
 app.get('/register', function(req, res) {
@@ -190,8 +189,11 @@ app.get('/register', function(req, res) {
 //Register - POST - handles the registration form data
 app.post('/register', function(req, res) {
   const newUserId = generateRandomString();
-  users[newUserId] = { id: newUserId, email: req.body.email, password: req.body.password };
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword};
   const user = users[newUserId];
+  console.log(user)
   if (!user.email || !user.password) {
     res.status(400).send("Invalid request. Please add your information. ");
   }
@@ -201,6 +203,12 @@ app.post('/register', function(req, res) {
 
   res.cookie("user_id", newUserId);
   res.redirect('/urls');
+});
+
+//Logout
+app.post('/logout', function(req, res) {
+  res.clearCookie("user_id");
+  res.redirect("/urls");
 });
 
 app.listen(PORT, () => {
