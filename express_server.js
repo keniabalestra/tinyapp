@@ -1,4 +1,4 @@
-const {checkEmailinDatabase, generateRandomString, getUserByEmail, urlsForUser} = require('./helpers');
+const { generateRandomString, getUserByEmail, urlsForUser } = require('./helpers');
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require('cookie-session');
@@ -29,11 +29,20 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  }
+    password: "ssss",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
 };
 
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
 
+//Redirects to login page if user not logged or to main page if user logged
 app.get("/", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   if (!currentUser) {
@@ -43,18 +52,17 @@ app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
 
-
+//main page
 app.get("/urls", (req, res) => {
+  //const id = req.session["user_id"]--///replace@@@@!!!!
   const currentUser = users[req.session["user_id"]];
   if (!currentUser) {
-    return res.status(401).send("You need to login to access this feature. Click <a href='/login'>here</a> to login");
+    return res.status(401).send("You need to login to access this feature. Click <a href='/login'>here</a> to login.");
   }
+  //URLs to a specific user
   const urls = urlsForUser(currentUser.id, urlDatabase);
-  const templateVars = { urls: urls, user: users[req.session["user_id"]] };
+  const templateVars = { urls, user: users[req.session["user_id"]] };
   res.render('urls_index', templateVars);
 });
 
@@ -64,37 +72,41 @@ app.get("/urls/new", (req, res) => {
     res.redirect('/login');
     return;
   }
-
   const templateVars = { user: users[req.session["user_id"]] };
   res.render('urls_new', templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL].longURL;
+
   if (!currentUser) {
-    return res.status(401).send("You need to login to access this feature.");
+    return res.status(401).send("You need to login to access this feature.Click <a href='/login'>here</a> to login.");
   }
-  if (urlDatabase[req.params.shortURL].userID !== currentUser.id) {
+  if (shortURL === undefined) {
+    return res.status(401).send("This URL doesn't exist.");
+  }
+  if (urlDatabase[shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page.");
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session["user_id"]] };
+  const templateVars = { shortURL, longURL, user: users[req.session["user_id"]] };
   res.render('urls_show', templateVars);
 });
-//redirects using shortURL
+
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
-
   if (!longURL) {
     return res.status(401).send("This URL doesn't exist.");
   }
   res.redirect(longURL);
 });
 
-//Adds a new URL
+//Adds a new URL to database
 app.post("/urls", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   if (!currentUser) {
-    return res.status(401).send("You need to login to access this feature.");;
+    return res.status(401).send("You need to login to access this feature.Click <a href='/login'>here</a> to login.");
   }
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.session["user_id"] };
@@ -105,22 +117,21 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL].longURL;
+
   if (urlDatabase[shortURL].userID !== currentUser) {
     return res.status(403).send("You are not authorized to see this page. Please Log In");
   }
-  const longURL = urlDatabase[req.params.shortURL].longURL;
   if (!longURL) {
     return res.status(401).send("This URL doesn't exist.");
   }
-
   urlDatabase[shortURL].longURL = req.body.longURL;
   res.redirect("/urls");
 });
 
-//Delete URL
+//Deletes URL
 app.post("/urls/:shortURL/delete", (req, res) => {
   const currentUser = users[req.session["user_id"]];
-
   if (!currentUser) {
     return res.status(403).send("You are not authorized to delete this URL.");
   }
@@ -128,7 +139,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-//New login
+
 app.get('/login', (req, res) => {
   const currentUser = users[req.session["user_id"]];
   if (currentUser) {
@@ -139,7 +150,7 @@ app.get('/login', (req, res) => {
   res.render('urls_login', templateVars);
 });
 
-//Register
+//Register form
 app.get('/register', function(req, res) {
   const currentUser = users[req.session["user_id"]];
   if (currentUser) {
@@ -152,13 +163,14 @@ app.get('/register', function(req, res) {
 
 //Login
 app.post('/login', function(req, res) {
-  const user = getUserByEmail(req.body.email, urlDatabase);
+  const email = req.body.email;
   const password = req.body.password;
+  const user = getUserByEmail(email, users);
   const hashedPassword = bcrypt.hashSync(password, 10);
 
   //Email not found
-  if (user === null) {
-    return res.status(403).send("Invalid request. Email not found.");
+  if (!user) {
+    return res.status(403).send("Invalid request. Email not found!");
   }
 
   // Password doesn't match
@@ -169,19 +181,20 @@ app.post('/login', function(req, res) {
   res.redirect("/urls");
 });
 
-//Register - POST - handles the registration form data
+//Registes new user
 app.post('/register', function(req, res) {
   const newUserId = generateRandomString();
   const password = req.body.password;
+  const email = req.body.email;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  users[newUserId] = { id: newUserId, email: req.body.email, password: hashedPassword };
+  users[newUserId] = { id: newUserId, email, password: hashedPassword };
   const user = users[newUserId];
 
   if (!user.email || !user.password) {
     res.status(400).send("Invalid request. Please add your information. ");
   }
-  if (checkEmailinDatabase(user.email, urlDatabase)) {
-    res.status(400).send("Invalid request. You're already registered.");
+  if (getUserByEmail(email, urlDatabase) !== null) {
+    res.status(400).send("Invalid request. You're already registered. Click <a href='/login'>here</a> to login.");
   }
   req.session["user_id"] = newUserId;
   res.redirect('/urls');

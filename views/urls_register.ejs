@@ -13,25 +13,33 @@
 
   <body>
     <%- include('partials/_header') %>
-    <div class="card text-center">
-      <div class="card-header"></div>
-      <div class="card-body">
-        <h1>Create Account</h1>
-        <form class="form-inline" action="/register" method="POST">
+    <main style="margin: 1em">
+      <h3>Create your Account</h3>
+      <form action="/register" method="POST">
+        <div class="form-group mb-2">
           <!-- Email input -->
-          <div class="form-outline mb-4">
-            <input type="email" name="email" id="form2Example1" class="form-control" />
-            <label class="form-label" >Email address</label>
-          </div>
-        
+          <label for="email">Email address</label>
+          <input
+            class="form-control mb-3"
+            type="email"
+            name="email"
+            placeholder="Enter email"
+            style="width: 300px"
+          />
           <!-- Password input -->
-          <div class="form-outline mb-4">
-            <input type="password" name="password" id="form2Example2" class="form-control" />
-            <label class="form-label">Password</label>
-          </div>
-            <!-- Submit button -->
-          <button type="submit" class="btn btn-success btn-block mb-4">Register</button>
-        </form>
+          <label for="password">Password</label>
+          <!-- Submit button -->
+          <input
+            class="form-control mb-3"
+            type="password"
+            name="password"
+            placeholder="Enter password"
+            style="width: 300px"
+          />
+          <button type="submit" class="btn btn-success">Register</button>
+        </div>
+      </form>
+    </main>
     <!-- Bootstrap JS -->
     <script
       src="https://code.jquery.com/jquery-3.3.1.slim.min.js"

@@ -1,11 +1,4 @@
-const checkEmailinDatabase = (email, urlDatabase) => {
-  for (let shortURL in urlDatabase) {
-    if (email === urlDatabase[shortURL].email) {
-      return true;
-    }
-  }
-  return undefined;
-};
+
 const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -15,9 +8,10 @@ const generateRandomString = function() {
   return result;
 };
 const getUserByEmail = (email, database) => {
-  for (const user in database) {
-    if (database[user].email === email) {
-      return database[user];
+  for (const id in database) {
+    const user = database[id];
+    if (user.email === email) {
+      return user;
     }
   }
   return null;
@@ -33,4 +27,4 @@ const urlsForUser = function(id, urlDatabase) {
   return userURLs;
 };
 
-module.exports = { checkEmailinDatabase, generateRandomString, getUserByEmail, urlsForUser };
+module.exports = { generateRandomString, getUserByEmail, urlsForUser };
