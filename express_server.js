@@ -1,9 +1,11 @@
 const { generateRandomString, getUserByEmail, urlsForUser } = require('./helpers');
+const { urlDatabase, users } = require('./database');
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require('cookie-session');
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
 
 //middleware
 app.set("view engine", "ejs");
@@ -13,30 +15,6 @@ app.use(cookieSession({
   keys: ['key1', 'key2'],
 }));
 
-
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: 'https://www.tsn.ca',
-    userID: 'aJ48lW',
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW",
-  }
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "ssss",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
-};
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
@@ -119,8 +97,8 @@ app.post("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-console.log(currentUser)
-console.log(urlDatabase[shortURL].userID)
+  console.log(currentUser);
+  console.log(urlDatabase[shortURL].userID);
   if (urlDatabase[shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page. Please Log In");
   }
@@ -140,7 +118,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
-
 
 app.get('/login', (req, res) => {
   const currentUser = users[req.session["user_id"]];
@@ -168,12 +145,12 @@ app.post('/login', function(req, res) {
   const email = req.body.email;
   const password = req.body.password;
   const user = getUserByEmail(email, users);
-  
+
   //Email not found
   if (!user) {
     return res.status(403).send("Invalid request. Email not found!");
   }
-  
+
   const hashedPassword = bcrypt.hashSync(user.password, 10);
   // Password doesn't match
   if (!bcrypt.compareSync(password, hashedPassword)) {
