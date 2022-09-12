@@ -16,8 +16,8 @@ app.use(cookieSession({
 
 const urlDatabase = {
   b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
+    longURL: 'https://www.tsn.ca',
+    userID: 'aJ48lW',
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
@@ -55,24 +55,25 @@ app.get("/", (req, res) => {
 
 //main page
 app.get("/urls", (req, res) => {
-  //const id = req.session["user_id"]--///replace@@@@!!!!
-  const currentUser = users[req.session["user_id"]];
+  const id = req.session["user_id"];
+  const currentUser = users[id];
   if (!currentUser) {
     return res.status(401).send("You need to login to access this feature. Click <a href='/login'>here</a> to login.");
   }
   //URLs to a specific user
   const urls = urlsForUser(currentUser.id, urlDatabase);
-  const templateVars = { urls, user: users[req.session["user_id"]] };
+  const templateVars = { urls, user: users[id] };
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const currentUser = users[req.session["user_id"]];
+  const id = req.session["user_id"];
+  const currentUser = users[id];
   if (!currentUser) {
     res.redirect('/login');
     return;
   }
-  const templateVars = { user: users[req.session["user_id"]] };
+  const templateVars = { user: users[id] };
   res.render('urls_new', templateVars);
 });
 
@@ -118,8 +119,9 @@ app.post("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-
-  if (urlDatabase[shortURL].userID !== currentUser) {
+console.log(currentUser)
+console.log(urlDatabase[shortURL].userID)
+  if (urlDatabase[shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page. Please Log In");
   }
   if (!longURL) {
@@ -166,13 +168,13 @@ app.post('/login', function(req, res) {
   const email = req.body.email;
   const password = req.body.password;
   const user = getUserByEmail(email, users);
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
+  
   //Email not found
   if (!user) {
     return res.status(403).send("Invalid request. Email not found!");
   }
-
+  
+  const hashedPassword = bcrypt.hashSync(user.password, 10);
   // Password doesn't match
   if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("Invalid request. Wrong password.");
@@ -187,15 +189,14 @@ app.post('/register', function(req, res) {
   const password = req.body.password;
   const email = req.body.email;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  users[newUserId] = { id: newUserId, email, password: hashedPassword };
-  const user = users[newUserId];
 
-  if (!user.email || !user.password) {
-    res.status(400).send("Invalid request. Please add your information. ");
+  if (!email || !password) {
+    return res.status(400).send("Invalid request. Please add your information. ");
   }
-  if (getUserByEmail(email, urlDatabase) !== null) {
-    res.status(400).send("Invalid request. You're already registered. Click <a href='/login'>here</a> to login.");
+  if (getUserByEmail(email, users) !== null) {
+    return res.status(400).send("Invalid request. You're already registered. Click <a href='/login'>here</a> to login.");
   }
+  users[newUserId] = { id: newUserId, email, password: hashedPassword };
   req.session["user_id"] = newUserId;
   res.redirect('/urls');
 });
