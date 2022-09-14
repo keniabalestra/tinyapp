@@ -58,26 +58,30 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL].longURL;
 
+  if (!urlDatabase[shortURL]) {
+    return res.status(401).send("This URL doesn't exist.");
+  }
+
+  const longURL = urlDatabase[shortURL].longURL;
   if (!currentUser) {
     return res.status(401).send("You need to login to access this feature.Click <a href='/login'>here</a> to login.");
   }
-  if (shortURL === undefined) {
-    return res.status(401).send("This URL doesn't exist.");
-  }
+  
   if (urlDatabase[shortURL].userID !== currentUser.id) {
     return res.status(403).send("You are not authorized to see this page.");
   }
+
   const templateVars = { shortURL, longURL, user: users[req.session["user_id"]] };
   res.render('urls_show', templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  if (!longURL) {
+  const shortURL = urlDatabase[req.params.shortURL];
+  if(!shortURL) {
     return res.status(401).send("This URL doesn't exist.");
   }
+  const longURL = shortURL.longURL;
   res.redirect(longURL);
 });
 
@@ -97,10 +101,9 @@ app.post("/urls/:shortURL", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-  console.log(currentUser);
-  console.log(urlDatabase[shortURL].userID);
+
   if (urlDatabase[shortURL].userID !== currentUser.id) {
-    return res.status(403).send("You are not authorized to see this page. Please Log In");
+    return res.status(403).send("You are not authorized to see this page. Please click <a href='/login'>here</a> to login.");
   }
   if (!longURL) {
     return res.status(401).send("This URL doesn't exist.");
@@ -113,7 +116,7 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/urls/:shortURL/delete", (req, res) => {
   const currentUser = users[req.session["user_id"]];
   if (!currentUser) {
-    return res.status(403).send("You are not authorized to delete this URL.");
+    return res.status(403).send("You are not authorized to delete this URL. ");
   }
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
@@ -148,13 +151,12 @@ app.post('/login', function(req, res) {
 
   //Email not found
   if (!user) {
-    return res.status(403).send("Invalid request. Email not found!");
+    return res.status(403).send("Invalid request. Email not found! Please click <a href='/login'>here</a> to try again.");
   }
 
-  const hashedPassword = bcrypt.hashSync(user.password, 10);
   // Password doesn't match
-  if (!bcrypt.compareSync(password, hashedPassword)) {
-    return res.status(403).send("Invalid request. Wrong password.");
+  if (!bcrypt.compareSync(password, user.password)) {
+    return res.status(403).send("Invalid request. Wrong password! Please click <a href='/login'>here</a> to try again.");
   }
   req.session["user_id"] = user.id;
   res.redirect("/urls");
@@ -168,10 +170,10 @@ app.post('/register', function(req, res) {
   const hashedPassword = bcrypt.hashSync(password, 10);
 
   if (!email || !password) {
-    return res.status(400).send("Invalid request. Please add your information. ");
+    return res.status(400).send("Invalid request. Missing information. Please click <a href='/login'>here</a> to try again. ");
   }
   if (getUserByEmail(email, users) !== null) {
-    return res.status(400).send("Invalid request. You're already registered. Click <a href='/login'>here</a> to login.");
+    return res.status(400).send("Invalid request. You're already registered. Please click <a href='/login'>here</a> to login.");
   }
   users[newUserId] = { id: newUserId, email, password: hashedPassword };
   req.session["user_id"] = newUserId;
@@ -183,7 +185,6 @@ app.post('/logout', function(req, res) {
   req.session = null;
   res.redirect("/urls");
 });
-
 
 
 app.listen(PORT, () => {
